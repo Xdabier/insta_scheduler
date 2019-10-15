@@ -114,26 +114,32 @@ const clickOnNext = async (page) => {
     } catch (e) {
         console.log('not found next btn! .. re-clicking!', e);
         await page.waitFor(1000);
+        await removePopUps(page);
         await clickOnNext(page);
     }
 };
 
 async function chooseFileAndPost(page) {
     try {
-        if (await page.$(config.selectors.new_post_button)) {
+        const fileInput = await page.$(config.selectors.file_input);
+        if (await page.$(config.selectors.new_post_button) && (await page.$(config.selectors.no_home_screen_button) === null)) {
+
             const [fileChooser] = await Promise.all([
                 page.waitForFileChooser(),
                 page.click(config.selectors.new_post_button)
             ]);
             let file = '';
+
             fs.readdir(imagesFolder, async (err, files) => {
                 file = await chooseFile(files);
-                await fileChooser.accept([imagesFolder + file]);
+                await fileInput.uploadFile(imagesFolder + file);
             });
-            // await page.click(config.selectors.new_post_button);
             // const input = await page.$(config.selectors.file_input);
             // await input.uploadFile('./images/1.jpg');
             console.log('file chosen');
+
+
+            await fileChooser.cancel();
 
             await clickOnNext(page);
             await writeAltText(page);
@@ -153,7 +159,7 @@ async function chooseFileAndPost(page) {
 }
 
 async function postOnInstagram() {
-    const browser = await puppeteer.launch({headless: true, args: ['--no-sandbox']});
+    const browser = await puppeteer.launch({headless: false, args: ['--no-sandbox']});
     const page = await browser.newPage();
     let loaded = await loginAndLoadHomePage(page);
     let posted = false;
