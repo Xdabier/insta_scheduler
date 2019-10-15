@@ -114,7 +114,6 @@ const clickOnNext = async (page) => {
     } catch (e) {
         console.log('not found next btn! .. re-clicking!', e);
         await page.waitFor(1000);
-        await removePopUps(page);
         await clickOnNext(page);
     }
 };
