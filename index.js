@@ -16,18 +16,13 @@ puppeteer.launch().then(async browser => {
 
 // bot.postOnInstagram().then(() => console.log('done')).catch((er) => console.log('err = ', er));
 
-(async () => {
-    fs.readdir(images, async (err, files) => {
-        try {
-            let file = await bot.chooseFile(files);
-            console.log('file to upload = ', file);
-            let uploaded = await pouch.addPost(file);
-            console.log('file uploaded = ', uploaded);
-            file = await bot.chooseFile(files);
-            console.log('file to upload = ', file);
-        } catch (e) {
-            console.log('err = ', e)
-        }
-    });
-})();
+const runner = async () => {
+    return await bot.postOnInstagram();
+};
+
+runner().then((res) => {
+    console.log('work done = ', res);
+}).catch((err) => {
+    console.log('err runner = ', err);
+});
 

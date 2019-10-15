@@ -67,7 +67,7 @@ const generateHastags = () => {
 async function writeCaption(page) {
     await page.waitFor(2000);
     await page.click(config.selectors.caption_textarea);
-    await page.keyboard.type(config.captions[0]);
+    await page.keyboard.type(config.captions[Math.floor(Math.random() * config.captions.length)] + "   " + generateHastags());
     await page.click(config.selectors.share_button);
     await page.waitForNavigation();
 }
@@ -125,9 +125,11 @@ async function chooseFileAndPost(page) {
                 page.waitForFileChooser(),
                 page.click(config.selectors.new_post_button)
             ]);
+            let file = '';
             fs.readdir(imagesFolder, async (err, files) => {
+                file = await chooseFile(files);
+                await fileChooser.accept([imagesFolder + file]);
             });
-                await fileChooser.accept(['./images/1.jpg']);
             // await page.click(config.selectors.new_post_button);
             // const input = await page.$(config.selectors.file_input);
             // await input.uploadFile('./images/1.jpg');
@@ -136,7 +138,10 @@ async function chooseFileAndPost(page) {
             await clickOnNext(page);
             await writeAltText(page);
             await writeCaption(page);
-            console.log('posted picture!')
+            console.log('posted picture!');
+            await pouchDb.addPost(file);
+            console.log('posted and saved!');
+            return true;
         } else {
             console.log('did not find button!');
             await removePopUps(page);
@@ -148,15 +153,16 @@ async function chooseFileAndPost(page) {
 }
 
 async function postOnInstagram() {
-    puppeteer.launch({headless: false, args: ['--no-sandbox']}).then(async (browser) => {
-        const page = await browser.newPage();
-        await loginAndLoadHomePage(page);
-
-        await chooseFileAndPost(page);
-
-    }).catch((err) => {
-        console.log('couldn\'t launch!! === ', err)
-    });
+    const browser = await puppeteer.launch({headless: true, args: ['--no-sandbox']});
+    const page = await browser.newPage();
+    let loaded = await loginAndLoadHomePage(page);
+    let posted = false;
+    if (loaded)
+        posted = await chooseFileAndPost(page);
+    if (posted) {
+        await browser.close();
+        return 'posted!';
+    }
 }
 
 module.exports = {postOnInstagram, chooseFile};
