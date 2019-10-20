@@ -1,5 +1,6 @@
-const puppeteer = require('puppeteer'),
-    devices = require('puppeteer/DeviceDescriptors'),
+
+const puppeteer = require('puppeteer-core'),
+    devices = require('puppeteer-core/DeviceDescriptors'),
     iPhone = devices['iPhone 6'],
     pouchDb = require('./pouchDb'),
     fs = require('fs'),
@@ -67,7 +68,7 @@ const generateHastags = () => {
 async function writeCaption(page) {
     await page.waitFor(2000);
     await page.click(config.selectors.caption_textarea);
-    await page.keyboard.type(config.captions[Math.floor(Math.random() * config.captions.length)] + "   " + generateHastags());
+    await page.keyboard.type(config.captions[Math.floor(Math.random() * config.captions.length)] + ". Get your coconutbowl TODAY! 🥥 💚 😍 LINK IN BIO! .... " + "   " + generateHastags());
     await page.click(config.selectors.share_button);
     await page.waitForNavigation();
 }
@@ -79,7 +80,7 @@ async function removePopUps(page) {
         await page.click(config.selectors.not_now_button);
     } else console.log('save login dialog not found --- not clicking! :/ passing it so ... ');
 
-    await page.waitFor(3500);
+    await page.waitFor(5000);
     if (await page.$(config.selectors.no_home_screen_button) !== null) {
         console.log('add to home screen dialog found --- clicking .. ');
         await page.click(config.selectors.no_home_screen_button);
@@ -115,38 +116,43 @@ const clickOnNext = async (page) => {
         console.log('not found next btn! .. re-clicking!', e);
         await page.waitFor(1000);
         await clickOnNext(page);
-    }
+   }
 };
 
 async function chooseFileAndPost(page) {
     try {
+	await page.waitFor(4000);
         const fileInput = await page.$(config.selectors.file_input);
         if (await page.$(config.selectors.new_post_button) && (await page.$(config.selectors.no_home_screen_button) === null)) {
 
-            const [fileChooser] = await Promise.all([
-                page.waitForFileChooser(),
-                page.click(config.selectors.new_post_button)
-            ]);
+            // const [fileChooser] = await Promise.all([
+                // page.waitForFileChooser(),
+               await page.click(config.selectors.new_post_button)
+            // ]);
             let file = '';
 
             fs.readdir(imagesFolder, async (err, files) => {
-                file = await chooseFile(files);
-                await fileInput.uploadFile(imagesFolder + file);
+               if (!err) {
+		file = await chooseFile(files);
+		console.log(file);
+	        // await fileChooser.cancel();
+		// await page.keyboard.press('Escape');
+		await fileInput.uploadFile(imagesFolder + file);
+	       } else {console.log(err)}
             });
+		await page.waitFor(5000);
             // const input = await page.$(config.selectors.file_input);
             // await input.uploadFile('./images/1.jpg');
-            console.log('file chosen');
-
-
-            await fileChooser.cancel();
-
-            await clickOnNext(page);
-            await writeAltText(page);
-            await writeCaption(page);
-            console.log('posted picture!');
-            await pouchDb.addPost(file);
-            console.log('posted and saved!');
-            return true;
+            console.log(file ? 'file chosen' : 'no more files!');
+            if (file.length > 1) {
+        	await clickOnNext(page);
+            	await writeAltText(page);
+            	await writeCaption(page);
+            	console.log('posted picture!');
+            	await pouchDb.addPost(file);
+            	console.log('posted and saved!');
+            	return true;
+	    } else return false;
         } else {
             console.log('did not find button!');
             await removePopUps(page);
@@ -158,7 +164,7 @@ async function chooseFileAndPost(page) {
 }
 
 async function postOnInstagram() {
-    const browser = await puppeteer.launch({headless: false, args: ['--no-sandbox']});
+    const browser = await puppeteer.launch({executablePath: '/usr/bin/chromium-browser', headless: true, args: ['--no-sandbox']});
     const page = await browser.newPage();
     let loaded = await loginAndLoadHomePage(page);
     let posted = false;
@@ -167,6 +173,9 @@ async function postOnInstagram() {
     if (posted) {
         await browser.close();
         return 'posted!';
+    } else {
+    await browser.close();
+    return 'no more files';
     }
 }
 
