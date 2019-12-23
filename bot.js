@@ -1,4 +1,3 @@
-
 const puppeteer = require('puppeteer-core'),
     devices = require('puppeteer-core/DeviceDescriptors'),
     iPhone = devices['iPhone 6'],
